@@ -23,25 +23,31 @@ init =
 
 -- UPDATE
 
-type Action = UpdateStartTime String
-            | UpdateEndTime String
-            | UpdateDuration String
-            | Reset
+type Action
+  = UpdateStartTime String
+  | UpdateEndTime String
+  | UpdateDuration String
+  | Reset
 
 update action model =
   case action of
 
     UpdateStartTime t ->
-        { model | start = autoInsertColon t }
+        { model | start = maxToFive (autoInsertColon t) }
 
     UpdateEndTime t ->
-        { model | end = t }
+        { model | end = maxToFive (autoInsertColon t) }
 
     UpdateDuration t ->
         { model | duration = t }
 
     Reset -> init
 
+maxToFive s =
+  if String.length s > 5 then
+    String.slice 0 5 s
+  else
+    s
 
 mapWithIndex mapper s =
   String.fromList
@@ -133,8 +139,7 @@ inputStyle parser value =
 
 view address model =
   div []
-    [ h1 [ ] [ text "Tunnit" ]
-    , p [ ] [ text (toString (calculateDuration model)) ]
+    [ p [ ] [ text (toString (calculateDuration model)) ]
     , input
       [ disabled (isStartEndDisabled model)
       , inputStyle parseDate model.start

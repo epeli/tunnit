@@ -1,4 +1,4 @@
-import HourEditor exposing (update, view, init)
+import HourList exposing (update, view, init)
 import StartApp.Simple exposing (start)
 
 
