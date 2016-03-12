@@ -1,4 +1,4 @@
-import Counter exposing (update, view, init)
+import HourEditor exposing (update, view, init)
 import StartApp.Simple exposing (start)
 
 

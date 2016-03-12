@@ -1,4 +1,4 @@
-module Counter where
+module HourEditor where
 
 import Html exposing (button, div, text, Attribute, input, p, h1)
 import Html.Attributes exposing (style, value, disabled)
