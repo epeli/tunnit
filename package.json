@@ -1,0 +1,26 @@
+{
+  "name": "tunnit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "elm.js",
+  "dependencies": {
+    "elm": "^0.16.0",
+    "elm-webpack-loader": "^2.0.1",
+    "webpack": "^1.12.14",
+    "webpack-dev-server": "^1.14.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epeli/tunnit.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/epeli/tunnit/issues"
+  },
+  "homepage": "https://github.com/epeli/tunnit#readme"
+}
