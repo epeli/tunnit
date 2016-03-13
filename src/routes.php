@@ -3,17 +3,15 @@
 
 
 
-$app->get('/hello', function ($request, $response, $args) {
+$app->post('/row/{id}', function ($request, $response, $args) {
 
     $response = $response->withHeader('Content-type', 'application/json');
 
+    error_log('body '  . print_r($request->getParsedBody(), true));
+
     $body = $response->getBody();
     $body->write(json_encode(array(
-        'projects' => array(
-            'muu',
-            'eka',
-            'toka',
-        )
+        'status' => 'ok'
     )));
 
     return $response;

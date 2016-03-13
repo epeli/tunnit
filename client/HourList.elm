@@ -45,11 +45,9 @@ update action model =
           { model | editors = List.map updateEditor model.editors }
 
 sumAllEditors model =
-  List.sum
-    (List.map
-      (\editorModel -> HourEditor.calculateDuration editorModel)
-      model.editors
-    )
+    model.editors
+    |> List.map HourEditor.calculateDuration
+    |> List.sum
 
 view address model =
   let editors = List.map (viewHourEditor address) model.editors

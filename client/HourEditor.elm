@@ -1,26 +1,43 @@
 module HourEditor where
 
-import Html exposing (button, div, text, Attribute, input, p, span)
+import Html exposing (Html, button, div, text, Attribute, input, p, span)
 import Html.Attributes exposing (style, value, disabled)
 import Html.Events exposing (onClick, on, targetValue)
 import String
 import Date
+import Effects exposing (Effects, Never)
+import Http
+import Task
+import Json.Decode
+import Json.Encode
 
 
 -- MODEL
 
 type alias Model =
-  { start : String
+  { id : Int
+  , start : String
   , end : String
   , duration : String
+  , saveStatus : String
   }
 
+init : Int -> (Model, Effects Action)
 init id =
-    { id = id
-    , start = ""
-    , end = ""
-    , duration = ""
-    }
+    let
+        initialModel = initModel id
+    in
+    ( initialModel
+    , Effects.none
+    )
+
+initModel id =
+  { id = id
+  , start = ""
+  , end = ""
+  , duration = ""
+  , saveStatus = "not saved"
+  }
 
 -- UPDATE
 
@@ -29,20 +46,66 @@ type Action
   | UpdateEndTime String
   | UpdateDuration String
   | Reset
+  | Save
+  | SaveResult (Maybe String)
 
+
+decodeRes =
+  Json.Decode.at ["status"] Json.Decode.string
+
+saveEditor model =
+  let
+      body = Http.multipart
+        [ Http.stringData "start" model.start
+        , Http.stringData "end" model.end
+        ]
+  in
+    Http.post decodeRes (Http.url ("/row/" ++ (toString model.id)) []) body
+    |> Task.toMaybe
+    |> Task.map SaveResult
+    |> Effects.task
+
+
+update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
-
     UpdateStartTime t ->
-        { model | start = maxToFive (autoInsertColon t) }
+        ( { model | start = maxToFive (autoInsertColon t) }
+        , Effects.none
+        )
 
     UpdateEndTime t ->
-        { model | end = maxToFive (autoInsertColon t) }
+        ( { model | end = maxToFive (autoInsertColon t) }
+        , Effects.none
+        )
 
     UpdateDuration t ->
-        { model | duration = t }
+        ( { model | duration = t }
+        , Effects.none
+        )
 
-    Reset -> init model.id
+    Reset ->
+      ( initModel model.id
+        , Effects.none
+      )
+
+    Save ->
+      (model, saveEditor model)
+
+    SaveResult maybeOk ->
+      (updateFromSaveResult maybeOk model, Effects.none)
+
+
+updateFromSaveResult maybeOk model =
+  case maybeOk of
+    Just s ->
+      { model | saveStatus = s }
+
+    Nothing ->
+      model
+
+
+
 
 maxToFive s =
   if String.length s > 5 then
@@ -138,6 +201,7 @@ inputStyle parser value =
         Err _ ->
           style [ ("background-color", "pink") ]
 
+view : Signal.Address Action -> Model -> Html
 view address model =
   div []
     [ p [ ] [ text (toString (calculateDuration model)) ]
@@ -161,6 +225,8 @@ view address model =
       , on "input" targetValue (sendUpdate UpdateDuration address)
       ] []
     , button [ onClick address Reset ] [ text "clear" ]
+    , button [ onClick address Save ] [ text "save" ]
+    , p [] [ text model.saveStatus ]
     ]
 
 
