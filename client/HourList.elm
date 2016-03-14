@@ -37,7 +37,7 @@ update action model =
               editors = newEditors,
               nextID = model.nextID + 1
           }
-          , Effects.map (Modify model.nextID) fx
+          , Effects.map (Modify newEditor.id) fx
           )
 
     Remove ->

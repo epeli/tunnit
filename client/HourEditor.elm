@@ -87,7 +87,9 @@ update action model =
       )
 
     Save ->
-      (model, saveEditor model)
+      ( { model | saveStatus = "saving..." }
+      , saveEditor model
+      )
 
     SaveResult maybeOk ->
       (updateFromSaveResult maybeOk model, Effects.none)
@@ -99,7 +101,7 @@ updateFromSaveResult maybeOk model =
       { model | saveStatus = s }
 
     Nothing ->
-      model
+      { model | saveStatus = "error ?" }
 
 
 
