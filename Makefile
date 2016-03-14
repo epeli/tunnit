@@ -1,5 +1,5 @@
-export PATH := client/node_modules/.bin:$(PATH)
 export SHELL := /bin/bash
+export PATH := $(CURDIR)/node_modules/.bin:$(PATH)
 
 
 all: npm-install elm-install
@@ -14,6 +14,6 @@ server:
 	php -S 0.0.0.0:8000 -t public public/index.php
 
 js-server:
-	cd client && ../node_modules/.bin/webpack-dev-server --inline --port 8001 --host 0.0.0.0
+	cd client && webpack-dev-server --inline --port 8001 --host 0.0.0.0
 
 
