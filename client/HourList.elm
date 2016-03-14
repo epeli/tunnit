@@ -2,53 +2,81 @@ module HourList where
 
 import Html exposing (button, div, text, Attribute, input, p, h1, hr)
 import Html.Events exposing (onClick)
+import Effects exposing (Effects, Never)
 
 import HourEditor
 
-type alias ID = Int
 
 type alias Model =
     { editors : List HourEditor.Model
-    , nextID : ID
+    , nextID : Int
     }
 
-init =
-  { editors = [HourEditor.init 0]
-  , nextID = 1
-  }
+
+init id =
+  ( { editors = [HourEditor.initModel id]
+    , nextID = id + 1
+    }
+  , Effects.none
+  )
 
 type Action
     = Insert
     | Remove
-    | Modify ID HourEditor.Action
+    | Modify Int HourEditor.Action
 
+
+update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
     Insert ->
-      let newEditor = HourEditor.init model.nextID
+      let (newEditor, fx) = HourEditor.init model.nextID
           newEditors = model.editors ++ [ newEditor ]
       in
-          { model |
+          ( { model |
               editors = newEditors,
               nextID = model.nextID + 1
           }
+          , Effects.map (Modify model.nextID) fx
+          )
 
     Remove ->
-      { model | editors = List.drop 1 model.editors }
+      ( { model | editors = List.drop 1 model.editors }
+      , Effects.none
+      )
 
     Modify id editorAction ->
-      let updateEditor editorModel =
-            if editorModel.id == id
-                then HourEditor.update editorAction editorModel
-                else editorModel
+        let
+            updateEditor editorModel =
+                if editorModel.id == id then
+                    let
+                        (newEditor, fx) = HourEditor.update editorAction editorModel
+                    in
+                        ( newEditor
+                        , Effects.map (Modify id) fx
+                        )
+                 else
+                    (editorModel, Effects.none)
+
+
+            (newEditors, fxList) =
+                model.editors
+                |> List.map updateEditor
+                |> List.unzip
+
       in
-          { model | editors = List.map updateEditor model.editors }
+          ({ model | editors = newEditors }
+          , Effects.batch fxList
+          )
+
 
 sumAllEditors model =
     model.editors
     |> List.map HourEditor.calculateDuration
     |> List.sum
 
+
+view : Signal.Address Action -> Model -> Html.Html
 view address model =
   let editors = List.map (viewHourEditor address) model.editors
       remove = button [ onClick address Remove ] [ text "Remove" ]

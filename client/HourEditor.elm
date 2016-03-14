@@ -24,12 +24,9 @@ type alias Model =
 
 init : Int -> (Model, Effects Action)
 init id =
-    let
-        initialModel = initModel id
-    in
-    ( initialModel
-    , Effects.none
-    )
+  ( initModel id
+  , Effects.none
+  )
 
 initModel id =
   { id = id
