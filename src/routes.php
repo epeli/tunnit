@@ -8,10 +8,11 @@ $app->post('/row/{id}', function ($request, $response, $args) {
     $response = $response->withHeader('Content-type', 'application/json');
 
     error_log('body '  . print_r($request->getParsedBody(), true));
+    $route = $request->getAttribute('route');
 
     $body = $response->getBody();
     $body->write(json_encode(array(
-        'status' => 'ok'
+        'status' => 'ok ' . $route->getArgument('id')
     )));
 
     return $response;
