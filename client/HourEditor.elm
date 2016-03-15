@@ -52,75 +52,77 @@ decodeRes =
 
 saveEditor model =
   let
-      body = Http.multipart
-        [ Http.stringData "start" model.start
-        , Http.stringData "end" model.end
-        ]
+    body = Http.multipart
+      [ Http.stringData "start" model.start
+      , Http.stringData "end" model.end
+      ]
   in
     Http.post decodeRes (Http.url ("/row/" ++ (toString model.id)) []) body
-    |> Task.toMaybe
-    |> Task.map SaveResult
-    |> Effects.task
+      |> Task.toMaybe
+      |> Task.map SaveResult
+      |> Effects.task
 
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
-    UpdateStartTime t ->
-        ( { model | start = maxToFive (autoInsertColon t) }
-        , Effects.none
-        )
+  UpdateStartTime t ->
+    ( { model | start = maxToFive (autoInsertColon t) }
+    , Effects.none
+    )
 
-    UpdateEndTime t ->
-        ( { model | end = maxToFive (autoInsertColon t) }
-        , Effects.none
-        )
+  UpdateEndTime t ->
+    ( { model | end = maxToFive (autoInsertColon t) }
+    , Effects.none
+    )
 
-    UpdateDuration t ->
-        ( { model | duration = t }
-        , Effects.none
-        )
+  UpdateDuration t ->
+    ( { model | duration = t }
+    , Effects.none
+    )
 
-    Reset ->
-      ( initModel model.id
-        , Effects.none
-      )
+  Reset ->
+    ( initModel model.id
+    , Effects.none
+    )
 
-    Save ->
-      ( { model | saveStatus = "saving..." }
-      , saveEditor model
-      )
+  Save ->
+    ( { model | saveStatus = "saving..." }
+    , saveEditor model
+    )
 
-    SaveResult maybeOk ->
-      (updateFromSaveResult maybeOk model, Effects.none)
+  SaveResult maybeOk ->
+    (updateFromSaveResult maybeOk model, Effects.none)
 
 
 updateFromSaveResult maybeOk model =
   case maybeOk of
-    Just s ->
-      { model | saveStatus = s }
+  Just s ->
+    { model | saveStatus = s }
 
-    Nothing ->
-      { model | saveStatus = "error ?" }
+  Nothing ->
+    { model | saveStatus = "error ?" }
 
 
 
 
 maxToFive s =
-  if String.length s > 5 then
-    String.slice 0 5 s
-  else
-    s
+  if String.length s > 5
+  then String.slice 0 5 s
+  else s
 
 mapWithIndex mapper s =
   String.fromList
-    (List.map2 mapper ([0..(String.length s)]) (String.toList s))
+  ( List.map2 mapper
+      ([0..(String.length s)])
+      (String.toList s)
+  )
 
 thirdToColon i c = if i == 2 then ':' else c
 
 lastNonColon s =
   let
-      last = String.right 1 s
+    last = String.right 1 s
   in
   if last == ":" then
     ""
@@ -130,8 +132,10 @@ lastNonColon s =
 autoInsertColon s =
   if String.length s == 3 then
     (String.slice 0 2 s) ++ ":" ++ (lastNonColon s)
+
   else if String.length s > 2 then
     mapWithIndex thirdToColon s
+
   else
     s
 
@@ -147,8 +151,8 @@ timeToSomeDate t =
 
 parseDate s =
   if s == ""
-    then Err "no value to parse"
-    else Date.fromString (timeToSomeDate s)
+  then Err "no value to parse"
+  else Date.fromString (timeToSomeDate s)
 
 msToHours m = m / 1000 / 60 / 60
 
@@ -190,15 +194,16 @@ isStartEndDisabled model =
   model.duration /= ""
 
 inputStyle parser value =
-    if value == "" then
+  if value == "" then
+    style []
+  else
+    case (parser value) of
+      Ok _ ->
         style []
-    else
-      case (parser value) of
-        Ok _ ->
-          style []
 
-        Err _ ->
-          style [ ("background-color", "pink") ]
+      Err _ ->
+        style [ ("background-color", "pink") ]
+
 
 view : Signal.Address Action -> Model -> Html
 view address model =
