@@ -15,8 +15,8 @@ type alias Model =
 
 init id =
   ( { editors = [HourEditor.initModel id]
-  , nextID = id + 1
-  }
+    , nextID = id + 1
+    }
   , Effects.none
   )
 
@@ -35,9 +35,9 @@ update action model =
         newEditors = model.editors ++ [ newEditor ]
       in
         ( { model |
-          editors = newEditors,
-          nextID = model.nextID + 1
-        }
+            editors = newEditors,
+            nextID = model.nextID + 1
+          }
         , Effects.map (Modify newEditor.id) fx
         )
 
@@ -66,7 +66,7 @@ update action model =
             |> List.unzip
 
       in
-        ({ model | editors = newEditors }
+        ( { model | editors = newEditors }
         , Effects.batch fxList
         )
 
