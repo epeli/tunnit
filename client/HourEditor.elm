@@ -14,11 +14,16 @@ import Json.Encode
 
 -- MODEL
 
-type alias Model =
-  { id : Int
-  , start : String
+type alias Inputs =
+  { start : String
   , end : String
   , duration : String
+  }
+
+type alias Model =
+  { id : Int
+  , inputs : Inputs
+  , savedInputs : Inputs
   , saveStatus : String
   }
 
@@ -28,11 +33,16 @@ init id =
   , Effects.none
   )
 
-initModel id =
-  { id = id
-  , start = ""
+initInputs =
+  { start = ""
   , end = ""
   , duration = ""
+  }
+
+initModel id =
+  { id = id
+  , inputs = initInputs
+  , savedInputs = initInputs
   , saveStatus = "not saved"
   }
 
@@ -53,8 +63,8 @@ decodeRes =
 saveEditor model =
   let
     body = Http.multipart
-      [ Http.stringData "start" model.start
-      , Http.stringData "end" model.end
+      [ Http.stringData "start" model.inputs.start
+      , Http.stringData "end" model.inputs.end
       ]
   in
     Http.post decodeRes (Http.url ("/row/" ++ (toString model.id)) []) body
@@ -67,22 +77,34 @@ update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
   UpdateStartTime t ->
-    ( { model | start = maxToFive (autoInsertColon t) }
-    , Effects.none
-    )
+    let
+        { inputs } = model
+        newInputs = { inputs | start = maxToFive (autoInsertColon t) }
+    in
+      ( { model | inputs = newInputs }
+      , Effects.none
+      )
 
   UpdateEndTime t ->
-    ( { model | end = maxToFive (autoInsertColon t) }
-    , Effects.none
-    )
+    let
+        { inputs } = model
+        newInputs = { inputs | end = maxToFive (autoInsertColon t) }
+    in
+      ( { model | inputs = newInputs }
+      , Effects.none
+      )
 
   UpdateDuration t ->
-    ( { model | duration = t }
-    , Effects.none
-    )
+    let
+        { inputs } = model
+        newInputs = { inputs | duration = t }
+    in
+      ( { model | inputs = newInputs }
+      , Effects.none
+      )
 
   Reset ->
-    ( initModel model.id
+    ( { model | inputs = model.savedInputs }
     , Effects.none
     )
 
@@ -98,12 +120,15 @@ update action model =
 updateFromSaveResult maybeOk model =
   case maybeOk of
   Just s ->
-    { model | saveStatus = s }
+    { model | saveStatus = s
+    , savedInputs = model.inputs
+    }
 
   Nothing ->
     { model | saveStatus = "error ?" }
 
 
+hasUnsavedChanges model = model.inputs /= model.savedInputs
 
 
 maxToFive s =
@@ -173,13 +198,13 @@ errToZero res =
     Ok d -> d
     Err _ -> 0.0
 
-calculateDuration model =
+calculateDuration inputs =
   errToZero (
-    if model.start /= "" && model.end /= "" then
-      diffDates model.start model.end
+    if inputs.start /= "" && inputs.end /= "" then
+      diffDates inputs.start inputs.end
 
-    else if model.duration /= "" then
-      String.toFloat model.duration
+    else if inputs.duration /= "" then
+      String.toFloat inputs.duration
 
     else
       Ok 0
@@ -187,11 +212,11 @@ calculateDuration model =
 
 
 
-isDurationDisabled model =
-  model.start /= "" || model.end /= ""
+isDurationDisabled inputs =
+  inputs.start /= "" || inputs.end /= ""
 
-isStartEndDisabled model =
-  model.duration /= ""
+isStartEndDisabled inputs =
+  inputs.duration /= ""
 
 inputStyle parser value =
   if value == "" then
@@ -208,28 +233,28 @@ inputStyle parser value =
 view : Signal.Address Action -> Model -> Html
 view address model =
   div []
-    [ p [ ] [ text (toString (calculateDuration model)) ]
+    [ p [ ] [ text (toString (calculateDuration model.inputs)) ]
     , span [] [ text (toString model.id) ]
     , input
-      [ disabled (isStartEndDisabled model)
-      , inputStyle parseDate model.start
-      , value model.start
+      [ disabled (isStartEndDisabled model.inputs)
+      , inputStyle parseDate model.inputs.start
+      , value model.inputs.start
       , on "input" targetValue (sendUpdate UpdateStartTime address)
       ] []
     , input
-      [ disabled (isStartEndDisabled model)
-      , inputStyle parseDate model.end
-      , value model.end
+      [ disabled (isStartEndDisabled model.inputs)
+      , inputStyle parseDate model.inputs.end
+      , value model.inputs.end
       , on "input" targetValue (sendUpdate UpdateEndTime address)
       ] []
     , input
-      [ disabled (isDurationDisabled model)
-      , inputStyle String.toFloat model.duration
-      , value model.duration
+      [ disabled (isDurationDisabled model.inputs)
+      , inputStyle String.toFloat model.inputs.duration
+      , value model.inputs.duration
       , on "input" targetValue (sendUpdate UpdateDuration address)
       ] []
-    , button [ onClick address Reset ] [ text "clear" ]
-    , button [ onClick address Save ] [ text "save" ]
+    , button [ onClick address Reset ] [ text "reset" ]
+    , button [ onClick address Save ] [ text ("save" ++ (if hasUnsavedChanges model then "*" else "")) ]
     , p [] [ text model.saveStatus ]
     ]
 

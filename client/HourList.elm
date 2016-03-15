@@ -73,6 +73,7 @@ update action model =
 
 sumAllEditors model =
   model.editors
+    |> List.map (\m -> m.inputs)
     |> List.map HourEditor.calculateDuration
     |> List.sum
 
