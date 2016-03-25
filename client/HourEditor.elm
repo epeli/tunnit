@@ -1,22 +1,25 @@
 module HourEditor where
 
-import Html exposing (Html, button, div, text, Attribute, input, p, span)
-import Html.Attributes exposing (style, value, disabled)
+import Html exposing (Html, button, div, text, Attribute, input, p, span, a)
+import Html.Attributes exposing (style, value, disabled, href)
 import Html.Events exposing (onClick, on, targetValue)
 import String
 import Date
+import Time
 import Effects exposing (Effects, Never)
 import Http
 import Task
 import Json.Decode
 import Json.Encode
+import TaskTutorial exposing (print, getCurrentTime)
+import TimeInput
 
 
 -- MODEL
 
 type alias Inputs =
-  { start : String
-  , end : String
+  { start : TimeInput.Model
+  , end : TimeInput.Model
   , duration : String
   }
 
@@ -49,8 +52,8 @@ initModel id =
 -- UPDATE
 
 type Action
-  = UpdateStartTime String
-  | UpdateEndTime String
+  = UpdateStartTime TimeInput.Action
+  | UpdateEndTime TimeInput.Action
   | UpdateDuration String
   | Reset
   | Save
@@ -76,23 +79,6 @@ saveEditor model =
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
-  UpdateStartTime t ->
-    let
-        { inputs } = model
-        newInputs = { inputs | start = maxToFive (autoInsertColon t) }
-    in
-      ( { model | inputs = newInputs }
-      , Effects.none
-      )
-
-  UpdateEndTime t ->
-    let
-        { inputs } = model
-        newInputs = { inputs | end = maxToFive (autoInsertColon t) }
-    in
-      ( { model | inputs = newInputs }
-      , Effects.none
-      )
 
   UpdateDuration t ->
     let
@@ -103,10 +89,31 @@ update action model =
       , Effects.none
       )
 
+  UpdateStartTime action ->
+    let
+        (newStart, fx) = TimeInput.update action model.inputs.start
+        { inputs } = model
+        newInputs = { inputs | start = newStart }
+    in
+      ( { model | inputs = newInputs }
+      , Effects.map UpdateStartTime fx
+      )
+
+  UpdateEndTime action ->
+    let
+        (newEnd, fx) = TimeInput.update action model.inputs.end
+        { inputs } = model
+        newInputs = { inputs | end = newEnd }
+    in
+      ( { model | inputs = newInputs }
+      , Effects.map UpdateEndTime fx
+      )
+
   Reset ->
     ( { model | inputs = model.savedInputs }
     , Effects.none
     )
+
 
   Save ->
     ( { model | saveStatus = "saving..." }
@@ -131,38 +138,6 @@ updateFromSaveResult maybeOk model =
 hasUnsavedChanges model = model.inputs /= model.savedInputs
 
 
-maxToFive s =
-  if String.length s > 5
-  then String.slice 0 5 s
-  else s
-
-mapWithIndex mapper s =
-  String.fromList
-  ( List.map2 mapper
-      ([0..(String.length s)])
-      (String.toList s)
-  )
-
-thirdToColon i c = if i == 2 then ':' else c
-
-lastNonColon s =
-  let
-    last = String.right 1 s
-  in
-  if last == ":" then
-    ""
-  else
-    last
-
-autoInsertColon s =
-  if String.length s == 3 then
-    (String.slice 0 2 s) ++ ":" ++ (lastNonColon s)
-
-  else if String.length s > 2 then
-    mapWithIndex thirdToColon s
-
-  else
-    s
 
 -- VIEW
 
@@ -170,19 +145,10 @@ sendUpdate action address val =
   Signal.message address (action val)
 
 
-timeToSomeDate t =
-  "Sat, 12 Mar 2016 " ++ t ++ ":00 GMT"
-
-
-parseDate s =
-  if s == ""
-  then Err "no value to parse"
-  else Date.fromString (timeToSomeDate s)
-
 msToHours m = m / 1000 / 60 / 60
 
 diffDates start end =
-  case ((parseDate start), (parseDate end)) of
+  case ((TimeInput.parseDate start), (TimeInput.parseDate end)) of
     (Ok s, Ok e) ->
       Ok (msToHours ((Date.toTime e) - (Date.toTime s)))
 
@@ -218,44 +184,31 @@ isDurationDisabled inputs =
 isStartEndDisabled inputs =
   inputs.duration /= ""
 
-inputStyle parser value =
-  if value == "" then
-    style []
-  else
-    case (parser value) of
-      Ok _ ->
-        style []
-
-      Err _ ->
-        style [ ("background-color", "pink") ]
 
 
 view : Signal.Address Action -> Model -> Html
 view address model =
   div []
     [ p [ ] [ text (toString (calculateDuration model.inputs)) ]
+
     , span [] [ text (toString model.id) ]
-    , input
-      [ disabled (isStartEndDisabled model.inputs)
-      , inputStyle parseDate model.inputs.start
-      , value model.inputs.start
-      , on "input" targetValue (sendUpdate UpdateStartTime address)
-      ] []
-    , input
-      [ disabled (isStartEndDisabled model.inputs)
-      , inputStyle parseDate model.inputs.end
-      , value model.inputs.end
-      , on "input" targetValue (sendUpdate UpdateEndTime address)
-      ] []
+
+    , TimeInput.view (Signal.forwardTo address UpdateStartTime) model.inputs.start (isStartEndDisabled model.inputs)
+    , TimeInput.view (Signal.forwardTo address UpdateEndTime) model.inputs.end (isStartEndDisabled model.inputs)
+
     , input
       [ disabled (isDurationDisabled model.inputs)
-      , inputStyle String.toFloat model.inputs.duration
+      , TimeInput.inputStyle String.toFloat model.inputs.duration
       , value model.inputs.duration
       , on "input" targetValue (sendUpdate UpdateDuration address)
       ] []
+
     , button [ onClick address Reset ] [ text "reset" ]
+
     , button [ onClick address Save ] [ text ("save" ++ (if hasUnsavedChanges model then "*" else "")) ]
+
     , p [] [ text model.saveStatus ]
+
     ]
 
 
