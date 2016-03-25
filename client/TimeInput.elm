@@ -24,35 +24,9 @@ formatTimeStampAsClock stamp =
     (padZero (Date.hour t)) ++ ":" ++ (padZero (Date.minute t))
 
 
-maxToFive s =
-  if String.length s > 5
-  then String.slice 0 5 s
-  else s
-
-mapWithIndex mapper s =
-  String.fromList
-  ( List.map2 mapper
-      ([0..(String.length s)])
-      (String.toList s)
-  )
-
-thirdToColon i c = if i == 2 then ':' else c
-
-lastNonColon s =
-  let
-    last = String.right 1 s
-  in
-  if last == ":" then
-    ""
-  else
-    last
-
 autoInsertColon s =
-  if String.length s == 3 then
-    (String.slice 0 2 s) ++ ":" ++ (lastNonColon s)
-
-  else if String.length s > 2 then
-    mapWithIndex thirdToColon s
+  if not (String.contains ":" s) && String.length s == 3 then
+    (String.slice 0 2 s) ++ ":" ++ String.right 1 s
 
   else
     s
@@ -61,7 +35,7 @@ update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
   Update s ->
-    ( maxToFive (autoInsertColon s)
+    ( String.slice 0 5 (autoInsertColon s)
     , Effects.none
     )
 
