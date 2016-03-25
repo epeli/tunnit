@@ -1,6 +1,6 @@
 module HourEditor where
 
-import Html exposing (Html, button, div, text, Attribute, input, p, span, a)
+import Html exposing (Html, button, div, text, Attribute, input, p, span)
 import Html.Attributes exposing (style, value, disabled, href)
 import Html.Events exposing (onClick, on, targetValue)
 import String
@@ -58,6 +58,7 @@ type Action
   | Reset
   | Save
   | SaveResult (Maybe String)
+  | SetPrevToStart String
 
 
 decodeRes =
@@ -122,6 +123,9 @@ update action model =
 
   SaveResult maybeOk ->
     (updateFromSaveResult maybeOk model, Effects.none)
+
+  SetPrevToStart t ->
+    update (UpdateStartTime (TimeInput.Update t)) model
 
 
 updateFromSaveResult maybeOk model =
@@ -194,6 +198,7 @@ view address model =
     , span [] [ text (toString model.id) ]
 
     , TimeInput.view (Signal.forwardTo address UpdateStartTime) model.inputs.start (isStartEndDisabled model.inputs)
+    , button [ onClick address (SetPrevToStart "") ] [ text "prev" ]
     , TimeInput.view (Signal.forwardTo address UpdateEndTime) model.inputs.end (isStartEndDisabled model.inputs)
 
     , input

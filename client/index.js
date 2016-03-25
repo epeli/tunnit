@@ -1,3 +1,3 @@
-var Elm = require("./Main.elm");
-Elm.fullscreen(Elm.Main);
+window.MyElm = require("./Main.elm");
+window.app = MyElm.fullscreen(MyElm.Main);
 

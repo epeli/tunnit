@@ -26,6 +26,34 @@ type Action
   | Modify Int HourEditor.Action
 
 
+findPrevValue : List HourEditor.Model -> HourEditor.Model -> String
+findPrevValue editors editor =
+  case editors of
+    [] -> ""
+
+    [_] -> ""
+
+    [current, next] ->
+      if next == editor then
+        current.inputs.end
+      else
+        ""
+
+    current :: next :: rest ->
+      if next == editor then
+        current.inputs.end
+      else
+        findPrevValue ([next] ++ rest) editor
+
+
+hourEditorUpdate allEditors action editor =
+
+  case action of
+    HourEditor.SetPrevToStart t ->
+      HourEditor.SetPrevToStart (findPrevValue allEditors editor)
+
+    _ -> action
+
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
@@ -51,7 +79,8 @@ update action model =
         updateEditor editorModel =
           if editorModel.id == id then
             let
-              (newEditor, fx) = HourEditor.update editorAction editorModel
+              transformedAction = hourEditorUpdate model.editors editorAction editorModel
+              (newEditor, fx) = HourEditor.update transformedAction editorModel
             in
               ( newEditor
               , Effects.map (Modify id) fx

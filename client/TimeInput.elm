@@ -1,6 +1,6 @@
 module TimeInput where
 
-import Html exposing (Html, span, text, input, p, span, a)
+import Html exposing (Html, span, text, input, p, span, button)
 import Html.Attributes exposing (style, value, disabled, href)
 import Html.Events exposing (onClick, on, targetValue)
 import TaskTutorial exposing (getCurrentTime)
@@ -105,5 +105,5 @@ view address model isDisabled =
       , value model
       , on "input" targetValue (sendUpdate Update address)
       ] []
-    , a [ href "#", onClick address SetNow ] [ text "now" ]
+    , button [ onClick address SetNow ] [ text "now" ]
     ]
